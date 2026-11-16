@@ -24,6 +24,31 @@
     height: 100dvh;
     overflow: hidden;
   }
+  #top-bar {
+    position: fixed;
+    top: 12px;
+    right: 16px;
+    z-index: 5;
+  }
+  #pause-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #1e1e1e;
+    border: 1px solid #333;
+    color: #aaa;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  #pause-btn:active {
+    background: #333;
+    color: #fff;
+  }
   #game-container {
     display: flex;
     align-items: flex-start;
@@ -32,6 +57,7 @@
     padding: 10px;
     width: 100%;
     max-width: 450px;
+    transition: transform 0.08s ease-out;
   }
   .side-panel {
     display: flex;
@@ -61,13 +87,16 @@
   #overlay {
     position: fixed;
     inset: 0;
-    background: rgba(18, 18, 18, 0.85);
+    background: rgba(15, 15, 15, 0.92);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 20px;
+    gap: 24px;
     z-index: 10;
+    padding: 24px;
   }
   #overlay.hidden {
     display: none;
@@ -76,18 +105,70 @@
     font-size: 24px;
     letter-spacing: 3px;
     font-weight: 300;
+    color: #fff;
   }
-  button {
+  .settings-box {
+    width: 100%;
+    max-width: 300px;
+    background: #1c1c1c;
+    border: 1px solid #2e2e2e;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .settings-box.hidden {
+    display: none;
+  }
+  .setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .setting-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #bbb;
+  }
+  .setting-val {
+    color: #00f0f0;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] {
+    width: 100%;
+    accent-color: #00f0f0;
+    touch-action: pan-x;
+  }
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 220px;
+  }
+  button.action-btn {
     background: #2c2c2c;
     color: #fff;
     border: 1px solid #444;
-    padding: 12px 32px;
-    font-size: 16px;
+    padding: 12px 24px;
+    font-size: 15px;
     border-radius: 24px;
     letter-spacing: 1px;
+    width: 100%;
   }
-  button:active {
-    background: #444;
+  button.action-btn.primary {
+    background: #e0e0e0;
+    color: #121212;
+    border-color: #e0e0e0;
+    font-weight: 600;
+  }
+  button.action-btn:active {
+    opacity: 0.75;
+  }
+  .hidden {
+    display: none !important;
   }
   .hint {
     position: fixed;
@@ -100,6 +181,10 @@
 </style>
 </head>
 <body>
+
+<div id="top-bar">
+  <button id="pause-btn" aria-label="Pause">II</button>
+</div>
 
 <div id="game-container">
   <div class="side-panel">
@@ -121,7 +206,37 @@
 
 <div id="overlay">
   <h1 id="overlay-title">TETRIS</h1>
-  <button id="start-btn">START</button>
+
+  <div id="settings-panel" class="settings-box hidden">
+    <div class="setting-item">
+      <div class="setting-header">
+        <span>横移動の感度 (小さいほど敏感)</span>
+        <span id="val-sens" class="setting-val">0.85x</span>
+      </div>
+      <input type="range" id="opt-sens" min="0.5" max="1.4" step="0.05" value="0.85">
+    </div>
+
+    <div class="setting-item">
+      <div class="setting-header">
+        <span>ハードドロップ判定距離</span>
+        <span id="val-flick" class="setting-val">45px</span>
+      </div>
+      <input type="range" id="opt-flick" min="25" max="90" step="5" value="45">
+    </div>
+
+    <div class="setting-item">
+      <div class="setting-header">
+        <span>自然落下スピード</span>
+        <span id="val-speed" class="setting-val">標準</span>
+      </div>
+      <input type="range" id="opt-speed" min="200" max="1200" step="100" value="800">
+    </div>
+  </div>
+
+  <div class="btn-group">
+    <button id="resume-btn" class="action-btn primary hidden">RESUME</button>
+    <button id="start-btn" class="action-btn primary">START</button>
+  </div>
 </div>
 
 <script>
@@ -184,7 +299,6 @@ const SHAPES = {
   ]
 };
 
-// SRS Wall Kick Data (J, L, S, T, Z)
 const KICKS_JLSTZ = {
   '0>1': [[0,0],[-1,0],[-1,1],[0,-2],[-1,-2]],
   '1>0': [[0,0],[1,0],[1,-1],[0,2],[1,2]],
@@ -196,7 +310,6 @@ const KICKS_JLSTZ = {
   '0>3': [[0,0],[1,0],[1,1],[0,-2],[1,-2]]
 };
 
-// SRS Wall Kick Data (I)
 const KICKS_I = {
   '0>1': [[0,0],[-2,0],[1,0],[-2,-1],[1,2]],
   '1>0': [[0,0],[2,0],[-1,0],[2,1],[-1,-2]],
@@ -208,15 +321,68 @@ const KICKS_I = {
   '0>3': [[0,0],[-1,0],[2,0],[-1,2],[2,-1]]
 };
 
+const gameContainer = document.getElementById('game-container');
 const boardCanvas = document.getElementById('board');
 const ctx = boardCanvas.getContext('2d');
 const holdCanvas = document.getElementById('hold-canvas');
 const holdCtx = holdCanvas.getContext('2d');
 const nextCanvas = document.getElementById('next-canvas');
 const nextCtx = nextCanvas.getContext('2d');
+
 const overlay = document.getElementById('overlay');
 const overlayTitle = document.getElementById('overlay-title');
+const settingsPanel = document.getElementById('settings-panel');
+const pauseBtn = document.getElementById('pause-btn');
+const resumeBtn = document.getElementById('resume-btn');
 const startBtn = document.getElementById('start-btn');
+
+// Settings elements
+const optSens = document.getElementById('opt-sens');
+const optFlick = document.getElementById('opt-flick');
+const optSpeed = document.getElementById('opt-speed');
+const valSens = document.getElementById('val-sens');
+const valFlick = document.getElementById('val-flick');
+const valSpeed = document.getElementById('val-speed');
+
+// Configurable parameters (with localStorage persistence)
+let config = {
+  dragSens: parseFloat(localStorage.getItem('tetris_sens')) || 0.85,
+  flickDist: parseInt(localStorage.getItem('tetris_flick')) || 45,
+  dropInterval: parseInt(localStorage.getItem('tetris_speed')) || 800
+};
+
+function syncSettingsUI() {
+  optSens.value = config.dragSens;
+  valSens.textContent = `${config.dragSens.toFixed(2)}x`;
+
+  optFlick.value = config.flickDist;
+  valFlick.textContent = `${config.flickDist}px`;
+
+  optSpeed.value = config.dropInterval;
+  const speedLabels = {
+    1200: 'かなり遅い', 1100: '遅め', 1000: 'やや遅め', 900: 'ゆったり',
+    800: '標準', 700: 'やや速め', 600: '速め', 500: '高速',
+    400: '超高速', 300: '達人', 200: '限界'
+  };
+  valSpeed.textContent = speedLabels[config.dropInterval] || `${config.dropInterval}ms`;
+}
+
+optSens.addEventListener('input', (e) => {
+  config.dragSens = parseFloat(e.target.value);
+  localStorage.setItem('tetris_sens', config.dragSens);
+  syncSettingsUI();
+});
+optFlick.addEventListener('input', (e) => {
+  config.flickDist = parseInt(e.target.value);
+  localStorage.setItem('tetris_flick', config.flickDist);
+  syncSettingsUI();
+});
+optSpeed.addEventListener('input', (e) => {
+  config.dropInterval = parseInt(e.target.value);
+  localStorage.setItem('tetris_speed', config.dropInterval);
+  syncSettingsUI();
+});
+syncSettingsUI();
 
 let blockSize = 26;
 let board = [];
@@ -227,8 +393,8 @@ let holdPiece = null;
 let canHold = true;
 let isGameOver = false;
 let isPaused = true;
+let hasStarted = false;
 
-let dropInterval = 800;
 let lastDropTime = 0;
 let lockTimer = 0;
 let lockMoves = 0;
@@ -236,8 +402,12 @@ const LOCK_DELAY = 500;
 const MAX_LOCK_MOVES = 15;
 let isSoftDropping = false;
 
+// Visual Effects State
+let clearEffects = []; // { rows: [], alpha: 1.0 }
+let floatingTexts = []; // { text: '', y: 0, alpha: 1.0, isTetris: false }
+
 function resize() {
-  const maxHeight = window.innerHeight * 0.82;
+  const maxHeight = window.innerHeight * 0.80;
   const maxWidth = window.innerWidth - 165;
   blockSize = Math.floor(Math.min(maxHeight / ROWS, maxWidth / COLS));
   blockSize = Math.max(18, Math.min(blockSize, 32));
@@ -276,7 +446,7 @@ function spawnPiece(type = null) {
   current = {
     type: t,
     rot: 0,
-    x: t === 'O' ? 3 : 3,
+    x: 3,
     y: 0
   };
   lockTimer = 0;
@@ -312,7 +482,6 @@ function rotatePiece(dir = 1) {
   const kicks = current.type === 'I' ? KICKS_I[key] : KICKS_JLSTZ[key];
 
   for (const [kx, ky] of kicks) {
-    // SRS Y is inverted relative to canvas Y
     if (isValid(current.x + kx, current.y - ky, newRot)) {
       current.x += kx;
       current.y -= ky;
@@ -340,18 +509,18 @@ function resetLockDelay() {
   }
 }
 
-function softDrop() {
-  if (!current || isPaused) return;
-  if (isValid(current.x, current.y + 1, current.rot)) {
-    current.y++;
-    lastDropTime = performance.now();
-  }
-}
-
 function hardDrop() {
   if (!current || isPaused) return;
+  let dropped = 0;
   while (isValid(current.x, current.y + 1, current.rot)) {
     current.y++;
+    dropped++;
+  }
+  if (dropped > 0) {
+    gameContainer.style.transform = 'translateY(3px)';
+    setTimeout(() => {
+      gameContainer.style.transform = 'translateY(0)';
+    }, 70);
   }
   lockPiece();
 }
@@ -389,12 +558,34 @@ function lockPiece() {
 }
 
 function clearLines() {
+  const clearedRows = [];
   for (let r = ROWS + HIDDEN_ROWS - 1; r >= 0; r--) {
     if (board[r].every(cell => cell !== null)) {
+      clearedRows.push(r);
       board.splice(r, 1);
       board.unshift(Array(COLS).fill(null));
       r++;
     }
+  }
+
+  if (clearedRows.length > 0) {
+    // Line flash effect
+    clearEffects.push({
+      rows: clearedRows,
+      alpha: 1.0
+    });
+
+    // Floating callout text
+    const labels = ['', 'SINGLE', 'DOUBLE', 'TRIPLE', 'TETRIS!'];
+    const avgRow = clearedRows.reduce((a, b) => a + b, 0) / clearedRows.length;
+    const displayY = Math.max(2, avgRow - HIDDEN_ROWS) * blockSize;
+
+    floatingTexts.push({
+      text: labels[clearedRows.length] || '',
+      y: displayY,
+      alpha: 1.0,
+      isTetris: clearedRows.length === 4
+    });
   }
 }
 
@@ -418,7 +609,6 @@ function drawBlock(context, x, y, color, size, isGhost = false) {
   } else {
     context.fillStyle = color;
     context.fillRect(px + 0.5, py + 0.5, size - 1, size - 1);
-    // Subtle highlight for modern feel
     context.fillStyle = 'rgba(255,255,255,0.18)';
     context.fillRect(px + 1, py + 1, size - 2, 3);
   }
@@ -427,7 +617,7 @@ function drawBlock(context, x, y, color, size, isGhost = false) {
 function draw() {
   ctx.clearRect(0, 0, boardCanvas.width, boardCanvas.height);
 
-  // Subtle grid lines
+  // Subtle grid
   ctx.strokeStyle = '#222';
   ctx.lineWidth = 1;
   for (let c = 1; c < COLS; c++) {
@@ -452,11 +642,11 @@ function draw() {
     }
   }
 
+  // Active & Ghost piece
   if (current) {
     const shape = SHAPES[current.type][current.rot];
     const ghostY = getGhostY();
 
-    // Ghost
     for (let r = 0; r < shape.length; r++) {
       for (let c = 0; c < shape[r].length; c++) {
         if (shape[r][c] && ghostY + r >= HIDDEN_ROWS) {
@@ -465,7 +655,6 @@ function draw() {
       }
     }
 
-    // Active piece
     for (let r = 0; r < shape.length; r++) {
       for (let c = 0; c < shape[r].length; c++) {
         if (shape[r][c] && current.y + r >= HIDDEN_ROWS) {
@@ -473,6 +662,42 @@ function draw() {
         }
       }
     }
+  }
+
+  // Render Line Clear Flash Effects
+  for (let i = clearEffects.length - 1; i >= 0; i--) {
+    const eff = clearEffects[i];
+    ctx.save();
+    ctx.fillStyle = `rgba(255, 255, 255, ${eff.alpha * 0.75})`;
+    for (const r of eff.rows) {
+      const screenR = r - HIDDEN_ROWS;
+      if (screenR >= 0) {
+        const expand = (1 - eff.alpha) * 6;
+        ctx.fillRect(0, screenR * blockSize - expand / 2, boardCanvas.width, blockSize + expand);
+      }
+    }
+    ctx.restore();
+    eff.alpha -= 0.065;
+    if (eff.alpha <= 0) clearEffects.splice(i, 1);
+  }
+
+  // Render Floating Callout Text
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const ft = floatingTexts[i];
+    ctx.save();
+    ctx.font = ft.isTetris ? '800 20px sans-serif' : '700 15px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = ft.isTetris
+      ? `rgba(0, 240, 240, ${ft.alpha})`
+      : `rgba(255, 255, 255, ${ft.alpha})`;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    ctx.shadowBlur = 6;
+    ctx.fillText(ft.text, boardCanvas.width / 2, ft.y);
+    ctx.restore();
+
+    ft.y -= 0.8;
+    ft.alpha -= 0.025;
+    if (ft.alpha <= 0) floatingTexts.splice(i, 1);
   }
 }
 
@@ -506,11 +731,35 @@ function drawSidePanels() {
   }
 }
 
+function togglePause() {
+  if (!hasStarted || isGameOver) return;
+  if (isPaused) {
+    // Resume
+    isPaused = false;
+    overlay.classList.add('hidden');
+    prevTime = performance.now();
+    lastDropTime = performance.now();
+    requestAnimationFrame(loop);
+  } else {
+    // Pause
+    isPaused = true;
+    overlayTitle.textContent = 'PAUSED';
+    settingsPanel.classList.remove('hidden');
+    resumeBtn.classList.remove('hidden');
+    startBtn.textContent = 'RESTART';
+    startBtn.classList.remove('primary');
+    overlay.classList.remove('hidden');
+  }
+}
+
 function gameOver() {
   isGameOver = true;
   isPaused = true;
   overlayTitle.textContent = 'GAME OVER';
+  settingsPanel.classList.remove('hidden');
+  resumeBtn.classList.add('hidden');
   startBtn.textContent = 'RETRY';
+  startBtn.classList.add('primary');
   overlay.classList.remove('hidden');
 }
 
@@ -522,9 +771,13 @@ function startGame() {
   canHold = true;
   isGameOver = false;
   isPaused = false;
+  hasStarted = true;
   isSoftDropping = false;
+  clearEffects = [];
+  floatingTexts = [];
   overlay.classList.add('hidden');
   spawnPiece();
+  prevTime = performance.now();
   lastDropTime = performance.now();
   requestAnimationFrame(loop);
 }
@@ -535,7 +788,7 @@ function loop(time) {
   const dt = time - prevTime;
   prevTime = time;
 
-  const currentInterval = isSoftDropping ? 45 : dropInterval;
+  const currentInterval = isSoftDropping ? 45 : config.dropInterval;
 
   if (time - lastDropTime > currentInterval) {
     if (isValid(current.x, current.y + 1, current.rot)) {
@@ -544,7 +797,6 @@ function loop(time) {
     lastDropTime = time;
   }
 
-  // Check grounded for lock delay
   if (!isValid(current.x, current.y + 1, current.rot)) {
     lockTimer += dt;
     if (lockTimer >= LOCK_DELAY) {
@@ -558,7 +810,7 @@ function loop(time) {
   requestAnimationFrame(loop);
 }
 
-// --- Mobile Touch Controls (Official App Style) ---
+// --- Mobile Touch Controls ---
 let touchStartX = 0;
 let touchStartY = 0;
 let lastGridX = 0;
@@ -567,7 +819,7 @@ let hasMovedHorizontally = false;
 let hasMovedVertically = false;
 
 document.addEventListener('touchstart', (e) => {
-  if (isPaused || e.target.tagName === 'BUTTON') return;
+  if (isPaused || e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
   if (e.target.closest('#hold-box')) {
     hold();
     return;
@@ -583,14 +835,15 @@ document.addEventListener('touchstart', (e) => {
 
 document.addEventListener('touchmove', (e) => {
   if (isPaused || !current) return;
+  if (e.target.tagName === 'INPUT') return;
   e.preventDefault();
+
   const t = e.touches[0];
   const dx = t.clientX - lastGridX;
   const totalDy = t.clientY - touchStartY;
   const totalDx = t.clientX - touchStartX;
 
-  // Sensitivity threshold: slightly smaller than blockSize for snappy feel
-  const stepX = blockSize * 0.85;
+  const stepX = blockSize * config.dragSens;
 
   if (Math.abs(dx) >= stepX) {
     const steps = Math.trunc(dx / stepX);
@@ -603,7 +856,6 @@ document.addEventListener('touchmove', (e) => {
     lastGridX += steps * stepX;
   }
 
-  // Soft drop activation when dragging downward steadily
   if (totalDy > blockSize * 1.4 && Math.abs(totalDy) > Math.abs(totalDx)) {
     isSoftDropping = true;
     hasMovedVertically = true;
@@ -621,8 +873,7 @@ document.addEventListener('touchend', (e) => {
   const totalDy = t.clientY - touchStartY;
   const elapsed = performance.now() - touchStartTime;
 
-  // Flick detection (fast vertical swipe)
-  if (elapsed < 260 && Math.abs(totalDy) > 45 && Math.abs(totalDy) > Math.abs(totalDx) * 1.5) {
+  if (elapsed < 260 && Math.abs(totalDy) > config.flickDist && Math.abs(totalDy) > Math.abs(totalDx) * 1.5) {
     if (totalDy > 0) {
       hardDrop();
     } else {
@@ -631,12 +882,13 @@ document.addEventListener('touchend', (e) => {
     return;
   }
 
-  // Tap detection (minimal movement)
   if (!hasMovedHorizontally && !hasMovedVertically && Math.abs(totalDx) < 15 && Math.abs(totalDy) < 15 && elapsed < 300) {
     rotatePiece(1);
   }
 });
 
+pauseBtn.addEventListener('click', togglePause);
+resumeBtn.addEventListener('click', togglePause);
 startBtn.addEventListener('click', startGame);
 resize();
 </script>
