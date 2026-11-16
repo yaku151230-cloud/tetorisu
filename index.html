@@ -109,7 +109,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 20px;
+    gap: 18px;
     z-index: 10;
     padding: 24px;
   }
@@ -117,10 +117,11 @@
     display: none;
   }
   #overlay h1 {
-    font-size: 24px;
-    letter-spacing: 3px;
+    font-size: 26px;
+    letter-spacing: 4px;
     font-weight: 300;
     color: #fff;
+    margin-bottom: 4px;
   }
   .settings-box {
     width: 100%;
@@ -224,7 +225,7 @@
 <div id="overlay">
   <h1 id="overlay-title">TETRIS</h1>
 
-  <div id="settings-panel" class="settings-box">
+  <div id="settings-panel" class="settings-box hidden">
     <div class="setting-item">
       <div class="setting-header">
         <span>横移動の感度</span>
@@ -427,7 +428,7 @@ let floatingTexts = [];
 
 function resize() {
   const maxHeight = window.innerHeight * 0.80;
-  const maxWidth = window.innerWidth - 90; // 片側パネル分のみ引いてボードを大きく
+  const maxWidth = window.innerWidth - 90;
   blockSize = Math.floor(Math.min(maxHeight / ROWS, maxWidth / COLS));
   blockSize = Math.max(20, Math.min(blockSize, 38));
   boardCanvas.width = blockSize * COLS;
@@ -746,12 +747,14 @@ function drawSidePanels() {
 function showTitleScreen() {
   isPaused = true;
   hasStarted = false;
+  isGameOver = false;
   overlayTitle.textContent = 'TETRIS';
-  settingsPanel.classList.remove('hidden');
+  settingsPanel.classList.add('hidden');
   resumeBtn.classList.add('hidden');
   restartBtn.classList.add('hidden');
   titleBtn.classList.add('hidden');
   startBtn.textContent = 'START';
+  startBtn.classList.remove('hidden');
   startBtn.classList.add('primary');
   overlay.classList.remove('hidden');
 }
@@ -767,12 +770,12 @@ function togglePause() {
   } else {
     isPaused = true;
     overlayTitle.textContent = 'PAUSED';
-    settingsPanel.classList.remove('hidden');
+    settingsPanel.classList.remove('hidden'); // 一時停止画面に設定を表示
     resumeBtn.classList.remove('hidden');
     restartBtn.classList.remove('hidden');
+    restartBtn.textContent = 'RESTART';
     titleBtn.classList.remove('hidden');
-    startBtn.textContent = 'START';
-    startBtn.classList.remove('primary');
+    startBtn.classList.add('hidden');
     overlay.classList.remove('hidden');
   }
 }
@@ -781,9 +784,10 @@ function gameOver() {
   isGameOver = true;
   isPaused = true;
   overlayTitle.textContent = 'GAME OVER';
-  settingsPanel.classList.remove('hidden');
+  settingsPanel.classList.add('hidden');
   resumeBtn.classList.add('hidden');
   restartBtn.classList.remove('hidden');
+  restartBtn.textContent = 'RETRY';
   titleBtn.classList.remove('hidden');
   startBtn.classList.add('hidden');
   overlay.classList.remove('hidden');
@@ -914,7 +918,14 @@ document.addEventListener('touchend', (e) => {
 
 pauseBtn.addEventListener('click', togglePause);
 resumeBtn.addEventListener('click', togglePause);
-restartBtn.addEventListener('click', startGame);
+restartBtn.addEventListener('click', () => {
+  if (isGameOver) {
+    startGame();
+  } else {
+    togglePause();
+    startGame();
+  }
+});
 titleBtn.addEventListener('click', showTitleScreen);
 startBtn.addEventListener('click', startGame);
 
