@@ -64,20 +64,25 @@
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    gap: 12px;
+    gap: 10px;
     padding: 10px;
     width: 100%;
     max-width: 450px;
     transition: transform 0.08s ease-out;
   }
-  .side-panel {
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .panel-group {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
   }
   .label {
-    font-size: 11px;
+    font-size: 10px;
     letter-spacing: 1.5px;
     color: #888;
     font-weight: 600;
@@ -90,7 +95,6 @@
   }
   #hold-box {
     cursor: pointer;
-    position: relative;
   }
   #hold-box:active {
     opacity: 0.7;
@@ -105,7 +109,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 24px;
+    gap: 20px;
     z-index: 10;
     padding: 24px;
   }
@@ -120,14 +124,14 @@
   }
   .settings-box {
     width: 100%;
-    max-width: 300px;
+    max-width: 280px;
     background: #1c1c1c;
     border: 1px solid #2e2e2e;
     border-radius: 12px;
-    padding: 16px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
   }
   .settings-box.hidden {
     display: none;
@@ -135,12 +139,12 @@
   .setting-item {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
   }
   .setting-header {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
+    font-size: 11px;
     color: #bbb;
   }
   .setting-val {
@@ -155,16 +159,16 @@
   .btn-group {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
-    max-width: 220px;
+    max-width: 200px;
   }
   button.action-btn {
     background: #2c2c2c;
     color: #fff;
     border: 1px solid #444;
-    padding: 12px 24px;
-    font-size: 15px;
+    padding: 11px 20px;
+    font-size: 14px;
     border-radius: 24px;
     letter-spacing: 1px;
     width: 100%;
@@ -198,18 +202,20 @@
 </div>
 
 <div id="game-container">
-  <div class="side-panel">
-    <div class="label">HOLD</div>
-    <div id="hold-box">
-      <canvas id="hold-canvas" width="64" height="64"></canvas>
-    </div>
-  </div>
-
   <canvas id="board"></canvas>
 
-  <div class="side-panel">
-    <div class="label">NEXT</div>
-    <canvas id="next-canvas" width="64" height="192"></canvas>
+  <div class="right-panel">
+    <div class="panel-group">
+      <div class="label">HOLD</div>
+      <div id="hold-box">
+        <canvas id="hold-canvas" width="56" height="56"></canvas>
+      </div>
+    </div>
+
+    <div class="panel-group">
+      <div class="label">NEXT</div>
+      <canvas id="next-canvas" width="56" height="168"></canvas>
+    </div>
   </div>
 </div>
 
@@ -218,10 +224,10 @@
 <div id="overlay">
   <h1 id="overlay-title">TETRIS</h1>
 
-  <div id="settings-panel" class="settings-box hidden">
+  <div id="settings-panel" class="settings-box">
     <div class="setting-item">
       <div class="setting-header">
-        <span>横移動の感度 (小さいほど敏感)</span>
+        <span>横移動の感度</span>
         <span id="val-sens" class="setting-val">0.85x</span>
       </div>
       <input type="range" id="opt-sens" min="0.5" max="1.4" step="0.05" value="0.85">
@@ -246,6 +252,8 @@
 
   <div class="btn-group">
     <button id="resume-btn" class="action-btn primary hidden">RESUME</button>
+    <button id="restart-btn" class="action-btn hidden">RESTART</button>
+    <button id="title-btn" class="action-btn hidden">TITLEに戻る</button>
     <button id="start-btn" class="action-btn primary">START</button>
   </div>
 </div>
@@ -344,7 +352,10 @@ const overlay = document.getElementById('overlay');
 const overlayTitle = document.getElementById('overlay-title');
 const settingsPanel = document.getElementById('settings-panel');
 const pauseBtn = document.getElementById('pause-btn');
+
 const resumeBtn = document.getElementById('resume-btn');
+const restartBtn = document.getElementById('restart-btn');
+const titleBtn = document.getElementById('title-btn');
 const startBtn = document.getElementById('start-btn');
 
 const optSens = document.getElementById('opt-sens');
@@ -416,9 +427,9 @@ let floatingTexts = [];
 
 function resize() {
   const maxHeight = window.innerHeight * 0.80;
-  const maxWidth = window.innerWidth - 165;
+  const maxWidth = window.innerWidth - 90; // 片側パネル分のみ引いてボードを大きく
   blockSize = Math.floor(Math.min(maxHeight / ROWS, maxWidth / COLS));
-  blockSize = Math.max(18, Math.min(blockSize, 32));
+  blockSize = Math.max(20, Math.min(blockSize, 38));
   boardCanvas.width = blockSize * COLS;
   boardCanvas.height = blockSize * ROWS;
   draw();
@@ -705,10 +716,10 @@ function draw() {
 function drawMiniPiece(context, type, offsetY, dimmed = false) {
   if (!type) return;
   const shape = SHAPES[type][0];
-  const miniSize = 14;
+  const miniSize = 12;
   const width = shape[0].length * miniSize;
-  const startX = (64 - width) / 2;
-  const startY = offsetY + (type === 'I' ? 6 : 12);
+  const startX = (56 - width) / 2;
+  const startY = offsetY + (type === 'I' ? 4 : 10);
 
   context.globalAlpha = dimmed ? 0.35 : 1.0;
   for (let r = 0; r < shape.length; r++) {
@@ -724,12 +735,25 @@ function drawMiniPiece(context, type, offsetY, dimmed = false) {
 
 function drawSidePanels() {
   holdCtx.clearRect(0, 0, holdCanvas.width, holdCanvas.height);
-  drawMiniPiece(holdCtx, holdPiece, 6, !canHold);
+  drawMiniPiece(holdCtx, holdPiece, 4, !canHold);
 
   nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
   for (let i = 0; i < 3; i++) {
-    drawMiniPiece(nextCtx, nextQueue[i], i * 62 + 4);
+    drawMiniPiece(nextCtx, nextQueue[i], i * 52 + 2);
   }
+}
+
+function showTitleScreen() {
+  isPaused = true;
+  hasStarted = false;
+  overlayTitle.textContent = 'TETRIS';
+  settingsPanel.classList.remove('hidden');
+  resumeBtn.classList.add('hidden');
+  restartBtn.classList.add('hidden');
+  titleBtn.classList.add('hidden');
+  startBtn.textContent = 'START';
+  startBtn.classList.add('primary');
+  overlay.classList.remove('hidden');
 }
 
 function togglePause() {
@@ -745,7 +769,9 @@ function togglePause() {
     overlayTitle.textContent = 'PAUSED';
     settingsPanel.classList.remove('hidden');
     resumeBtn.classList.remove('hidden');
-    startBtn.textContent = 'RESTART';
+    restartBtn.classList.remove('hidden');
+    titleBtn.classList.remove('hidden');
+    startBtn.textContent = 'START';
     startBtn.classList.remove('primary');
     overlay.classList.remove('hidden');
   }
@@ -757,8 +783,9 @@ function gameOver() {
   overlayTitle.textContent = 'GAME OVER';
   settingsPanel.classList.remove('hidden');
   resumeBtn.classList.add('hidden');
-  startBtn.textContent = 'RETRY';
-  startBtn.classList.add('primary');
+  restartBtn.classList.remove('hidden');
+  titleBtn.classList.remove('hidden');
+  startBtn.classList.add('hidden');
   overlay.classList.remove('hidden');
 }
 
@@ -887,8 +914,12 @@ document.addEventListener('touchend', (e) => {
 
 pauseBtn.addEventListener('click', togglePause);
 resumeBtn.addEventListener('click', togglePause);
+restartBtn.addEventListener('click', startGame);
+titleBtn.addEventListener('click', showTitleScreen);
 startBtn.addEventListener('click', startGame);
+
 resize();
+showTitleScreen();
 </script>
 </body>
 </html>
