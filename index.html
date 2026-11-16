@@ -87,6 +87,21 @@
     color: #888;
     font-weight: 600;
   }
+  .stat-box {
+    width: 56px;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 6px 2px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    color: #e0e0e0;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-box.accent {
+    color: #00f0f0;
+  }
   canvas {
     background-color: #1a1a1a;
     border: 1px solid #333;
@@ -123,6 +138,36 @@
     color: #fff;
     margin-bottom: 4px;
   }
+  .result-box {
+    width: 100%;
+    max-width: 240px;
+    background: #1c1c1c;
+    border: 1px solid #2e2e2e;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+  }
+  .result-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .result-label {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: #888;
+  }
+  .result-value {
+    font-size: 26px;
+    font-weight: 600;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .result-value.accent {
+    color: #00f0f0;
+  }
   .settings-box {
     width: 100%;
     max-width: 280px;
@@ -133,9 +178,6 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-  }
-  .settings-box.hidden {
-    display: none;
   }
   .setting-item {
     display: flex;
@@ -217,6 +259,16 @@
       <div class="label">NEXT</div>
       <canvas id="next-canvas" width="56" height="168"></canvas>
     </div>
+
+    <div class="panel-group">
+      <div class="label">LINES</div>
+      <div id="lines-val" class="stat-box">0</div>
+    </div>
+
+    <div class="panel-group">
+      <div class="label">TETRIS</div>
+      <div id="tetris-val" class="stat-box accent">0</div>
+    </div>
   </div>
 </div>
 
@@ -224,6 +276,17 @@
 
 <div id="overlay">
   <h1 id="overlay-title">TETRIS</h1>
+
+  <div id="result-panel" class="result-box hidden">
+    <div class="result-item">
+      <span class="result-label">LINES</span>
+      <span id="res-lines" class="result-value">0</span>
+    </div>
+    <div class="result-item">
+      <span class="result-label">TETRIS</span>
+      <span id="res-tetris" class="result-value accent">0</span>
+    </div>
+  </div>
 
   <div id="settings-panel" class="settings-box hidden">
     <div class="setting-item">
@@ -349,6 +412,12 @@ const holdCtx = holdCanvas.getContext('2d');
 const nextCanvas = document.getElementById('next-canvas');
 const nextCtx = nextCanvas.getContext('2d');
 
+const linesVal = document.getElementById('lines-val');
+const tetrisVal = document.getElementById('tetris-val');
+const resultPanel = document.getElementById('result-panel');
+const resLines = document.getElementById('res-lines');
+const resTetris = document.getElementById('res-tetris');
+
 const overlay = document.getElementById('overlay');
 const overlayTitle = document.getElementById('overlay-title');
 const settingsPanel = document.getElementById('settings-panel');
@@ -415,6 +484,9 @@ let canHold = true;
 let isGameOver = false;
 let isPaused = true;
 let hasStarted = false;
+
+let linesCleared = 0;
+let tetrisCount = 0;
 
 let lastDropTime = 0;
 let lockTimer = 0;
@@ -577,6 +649,11 @@ function lockPiece() {
   spawnPiece();
 }
 
+function updateStatsDisplay() {
+  linesVal.textContent = linesCleared;
+  tetrisVal.textContent = tetrisCount;
+}
+
 function clearLines() {
   const clearedRows = [];
   for (let r = ROWS + HIDDEN_ROWS - 1; r >= 0; r--) {
@@ -589,6 +666,12 @@ function clearLines() {
   }
 
   if (clearedRows.length > 0) {
+    linesCleared += clearedRows.length;
+    if (clearedRows.length === 4) {
+      tetrisCount++;
+    }
+    updateStatsDisplay();
+
     clearEffects.push({
       rows: clearedRows,
       alpha: 1.0
@@ -749,6 +832,7 @@ function showTitleScreen() {
   hasStarted = false;
   isGameOver = false;
   overlayTitle.textContent = 'TETRIS';
+  resultPanel.classList.add('hidden');
   settingsPanel.classList.add('hidden');
   resumeBtn.classList.add('hidden');
   restartBtn.classList.add('hidden');
@@ -770,7 +854,8 @@ function togglePause() {
   } else {
     isPaused = true;
     overlayTitle.textContent = 'PAUSED';
-    settingsPanel.classList.remove('hidden'); // 一時停止画面に設定を表示
+    resultPanel.classList.add('hidden');
+    settingsPanel.classList.remove('hidden');
     resumeBtn.classList.remove('hidden');
     restartBtn.classList.remove('hidden');
     restartBtn.textContent = 'RESTART';
@@ -784,6 +869,12 @@ function gameOver() {
   isGameOver = true;
   isPaused = true;
   overlayTitle.textContent = 'GAME OVER';
+  
+  // リザルトをセットして表示
+  resLines.textContent = linesCleared;
+  resTetris.textContent = tetrisCount;
+  resultPanel.classList.remove('hidden');
+  
   settingsPanel.classList.add('hidden');
   resumeBtn.classList.add('hidden');
   restartBtn.classList.remove('hidden');
@@ -803,6 +894,9 @@ function startGame() {
   isPaused = false;
   hasStarted = true;
   isSoftDropping = false;
+  linesCleared = 0;
+  tetrisCount = 0;
+  updateStatsDisplay();
   clearEffects = [];
   floatingTexts = [];
   overlay.classList.add('hidden');
